@@ -1,3 +1,4 @@
+from AccessControl import ClassSecurityInfo
 from Products.ATContentTypes.content import folder
 from Products.ATReferenceBrowserWidget import ATReferenceBrowserWidget
 from Products.Archetypes import atapi
@@ -30,9 +31,11 @@ MeetingItemSchema = folder.ATFolderSchema.copy() + atapi.Schema((
             required=False,
             primary=True,
             default_content_type='text/html',
-            default_output_type='text/html',
+            allowable_content_types=('text/html',),
+            validators=('isTidyHtmlWithCleanup', ),
+            default_output_type='text/x-html-safe',
+            default_input_type='text/html',
             storage=atapi.AnnotationStorage(),
-
             widget=atapi.RichWidget(
                 label=_(u"meetingitem_label_text", default=u"Text"),
                 description=_(u"meetingitem_help_text",
@@ -45,9 +48,11 @@ MeetingItemSchema = folder.ATFolderSchema.copy() + atapi.Schema((
             required=False,
             primary=False,
             default_content_type='text/html',
-            default_output_type='text/html',
+            allowable_content_types=('text/html',),
+            validators=('isTidyHtmlWithCleanup', ),
+            default_output_type='text/x-html-safe',
+            default_input_type='text/html',
             storage=atapi.AnnotationStorage(),
-
             widget=atapi.RichWidget(
                 label=_(u"meetingitem_label_conclusion",
                         default=u"Conclusion"),
@@ -93,6 +98,7 @@ MeetingItemSchema['expirationDate'].widget.visible = {'view': 'invisible',
 class MeetingItem(folder.ATFolder):
     """A type for meeting items."""
     implements(IMeetingItem)
+    security = ClassSecurityInfo()
 
     portal_type = "Meeting Item"
 
@@ -100,6 +106,10 @@ class MeetingItem(folder.ATFolder):
 
     text = atapi.ATFieldProperty('text')
     conclusion = atapi.ATFieldProperty('conclusion')
+
+    security.declarePublic('canSetDefaultPage')
+    def canSetDefaultPage(self):
+        return False
 
 
 atapi.registerType(MeetingItem, PROJECTNAME)

@@ -1,29 +1,60 @@
-from ftw.meeting.utils import get_memberdata
 from AccessControl import ClassSecurityInfo
-from cStringIO import StringIO
 from DateTime import DateTime
-from ftw.calendarwidget.browser.widgets import FtwCalendarWidget
-from ftw.meeting import meetingMessageFactory as _
-from ftw.meeting.config import PROJECTNAME
-from ftw.meeting.content.widget import DataGridWidgetExtended
-from ftw.meeting.interfaces import IMeeting
-from Products.Archetypes import atapi
+from DateTime.interfaces import DateTimeError
+from Products.ATContentTypes import ATCTMessageFactory as atct_mf
 from Products.ATContentTypes.content import folder
 from Products.ATContentTypes.lib.calendarsupport import CalendarSupportMixin
 from Products.ATContentTypes.lib.calendarsupport import rfc2445dt, vformat, \
     foldLine, ICS_EVENT_START, ICS_EVENT_END
 from Products.ATReferenceBrowserWidget import ATReferenceBrowserWidget
+from Products.Archetypes import atapi
 from Products.CMFCore import permissions
 from Products.CMFCore.permissions import View
 from Products.CMFCore.utils import getToolByName
 from Products.DataGridField import DataGridField
 from Products.DataGridField.SelectColumn import SelectColumn
+from cStringIO import StringIO
+from ftw.calendarwidget.browser.widgets import FtwCalendarWidget
+from ftw.meeting import meetingMessageFactory as _
+from ftw.meeting.config import PROJECTNAME
+from ftw.meeting.content.widget import DataGridWidgetExtended
+from ftw.meeting.interfaces import IMeeting
+from ftw.meeting.utils import get_memberdata
 from zope import component, schema
 from zope.interface import implements
 
 
-
 MeetingSchema = folder.ATFolderSchema.copy() + atapi.Schema((
+        atapi.DateTimeField(
+            name='start_date',
+            searchable=True,
+            required=True,
+            accessor='start',
+            schemata='default',
+            widget=FtwCalendarWidget(
+                helper_js=('start_end_date_helper.js',),
+                label=_(u"meeting_label_start_date",
+                        default=u"Start Date"),
+                description=_(u"meeting_help_start_date",
+                              default=u"Enter the starting date and time, "
+                                  "or click the calendar icon and select it.")
+                )),
+
+        atapi.DateTimeField(
+            name='end_date',
+            searchable=True,
+            required=True,
+            accessor='end',
+            schemata='default',
+
+            widget=FtwCalendarWidget(
+                label=_(
+                    u"meeting_label_end_date",
+                    default=u"End Date"),
+                description=_(
+                    u"meeting_help_end_date",
+                    default=u"Enter the ending date and time, "
+                    "or click the calendar icon and select it."))),
 
         atapi.StringField(
             name='meeting_type',
@@ -64,37 +95,6 @@ MeetingSchema = folder.ATFolderSchema.copy() + atapi.Schema((
                         vocabulary='getAttendeesVocabulary'
                         ),
                     })),
-
-        atapi.DateTimeField(
-            name='start_date',
-            searchable=True,
-            required=True,
-            accessor='start',
-            schemata='default',
-            widget=FtwCalendarWidget(
-                helper_js=('start_end_date_helper.js',),
-                label=_(u"meeting_label_start_date",
-                        default=u"Start Date"),
-                description=_(u"meeting_help_start_date",
-                              default=u"Enter the starting date and time, " + \
-                                  "or click the calendar icon and select it.")
-                )),
-
-        atapi.DateTimeField(
-            name='end_date',
-            searchable=True,
-            required=True,
-            accessor='end',
-            schemata='default',
-
-            widget=FtwCalendarWidget(
-                label=_(
-                    u"meeting_label_end_date",
-                    default=u"End Date"),
-                description=_(
-                    u"meeting_help_end_date",
-                    default=u"Enter the ending date and time, "
-                    "or click the calendar icon and select it."))),
 
         atapi.StringField(
             name='meeting_form',
@@ -196,7 +196,8 @@ MeetingSchema.changeSchemataForField('expirationDate', 'settings')
 
 
 # use plone default location field
-MeetingSchema.moveField('location', after='description')
+MeetingSchema.moveField('location', after='end_date')
+MeetingSchema.moveField('description', after='end_date')
 MeetingSchema['location'].searchable = True
 MeetingSchema['location'].schemata = 'default'
 MeetingSchema['location'].widget = atapi.StringWidget(
@@ -218,11 +219,52 @@ MeetingSchema['expirationDate'].widget.visible = {'view': 'invisible',
 class Meeting(folder.ATFolder, CalendarSupportMixin):
     """A type for meetings."""
     implements(IMeeting)
+    security = ClassSecurityInfo()
 
     security = ClassSecurityInfo()
 
     portal_type = "Meeting"
     schema = MeetingSchema
+
+    # based on Products.ATContentTypes.content.event.ATEvent
+    security.declareProtected(permissions.View, 'post_validate')
+    def post_validate(self, REQUEST=None, errors=None):
+        """Validates start and end date
+
+        End date must be after start date
+        """
+        if 'start_date' in errors or 'end_date' in errors:
+            # No point in validating bad input
+            return
+
+        rstartDate = REQUEST.get('start_date', None)
+        rendDate = REQUEST.get('end_date', None)
+
+        if rendDate:
+            try:
+                end = DateTime(rendDate)
+            except DateTimeError:
+                errors['end_date'] = atct_mf(u'error_invalid_end_date',
+                                      default=u'End date is not valid.')
+        else:
+            end = self.end()
+        if rstartDate:
+            try:
+                start = DateTime(rstartDate)
+            except DateTimeError:
+                errors['start_date'] = _(u'error_invalid_start_date',
+                                        default=u'Start date is not valid.')
+        else:
+            start = self.start()
+
+        if 'start_date' in errors or 'end_date' in errors:
+            # No point in validating bad input
+            return
+
+        if start > end:
+            errors['end_date'] = atct_mf(
+                u'error_end_must_be_after_start_date',
+                default=u'End date must be after start date.')
 
     def getAttendeesVocabulary(self):
         """Workaround for DatagridField SelectColumn
@@ -373,6 +415,10 @@ class Meeting(folder.ATFolder, CalendarSupportMixin):
     def sortable_responsibility(self):
         if self.getResponsibility():
             return [r['contact'] for r in self.getResponsibility()]
+
+    security.declarePublic('canSetDefaultPage')
+    def canSetDefaultPage(self):
+        return False
 
     security.declareProtected(View, 'getICal')
     def getICal(self):

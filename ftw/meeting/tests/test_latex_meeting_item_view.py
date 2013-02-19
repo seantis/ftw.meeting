@@ -15,6 +15,7 @@ class TestMeetingItemView(MockTestCase):
     layer = LATEX_ZCML_LAYER
 
     def setUp(self):
+        super(TestMeetingItemView, self).setUp()
         self.context = self.providing_stub([IMeetingItem])
         self.request = self.stub()
         self.builder = self.providing_stub([IBuilder])
@@ -67,8 +68,8 @@ class TestMeetingItemView(MockTestCase):
             args,
             {'title': 'Introduction',
              'responsibles': ['Hugo Boss'],
-             'text': 'agenda {\\bf item} text',
-             'conclusion': 'the {\\bf conclusion}',
+             'text': 'agenda \\textbf{item} text',
+             'conclusion': 'the \\textbf{conclusion}',
              'relatedItems': [{'title': 'a file',
                                'url': '/item/a\\%20file'}]})
 

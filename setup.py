@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import os
 
-version = '1.3.8.dev0'
+version = '1.4.2.dev0'
 maintainer = 'Mathias Leimgruber'
 
 tests_require = [
@@ -54,6 +54,7 @@ setup(name='ftw.meeting',
         'setuptools',
         'ftw.calendarwidget',
         'plone.principalsource',
+        'ftw.upgrade',
         ],
 
       tests_require=tests_require,
