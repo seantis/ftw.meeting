@@ -32,7 +32,7 @@ MeetingSchema = folder.ATFolderSchema.copy() + atapi.Schema((
                         default=u"Start Date"),
                 description=_(u"meeting_help_start_date",
                               default=u"Enter the starting date and time, "
-                                  "or click the calendar icon and select it.")
+                              "or click the calendar icon and select it.")
                 )),
 
         atapi.DateTimeField(
@@ -50,6 +50,20 @@ MeetingSchema = folder.ATFolderSchema.copy() + atapi.Schema((
                     u"meeting_help_end_date",
                     default=u"Enter the ending date and time, "
                     "or click the calendar icon and select it."))),
+
+        atapi.TextField(
+            name='text',
+            searchable=True,
+            required=False,
+            default_content_type='text/html',
+            allowable_content_types=('text/html',),
+            validators=('isTidyHtmlWithCleanup', ),
+            default_output_type='text/x-html-safe',
+            default_input_type='text/html',
+            storage=atapi.AnnotationStorage(),
+            widget=atapi.RichWidget(
+                label=_(u'task_label_text', default=u'Text'),
+                description=_(u'task_help_text', default=u''))),
 
         atapi.StringField(
             name='meeting_type',
@@ -238,7 +252,7 @@ class Meeting(folder.ATFolder, CalendarSupportMixin):
                 end = DateTime(rendDate)
             except DateTimeError:
                 errors['end_date'] = atct_mf(u'error_invalid_end_date',
-                                      default=u'End date is not valid.')
+                                             default=u'End date is not valid.')
         else:
             end = self.end()
         if rstartDate:
@@ -246,7 +260,7 @@ class Meeting(folder.ATFolder, CalendarSupportMixin):
                 start = DateTime(rstartDate)
             except DateTimeError:
                 errors['start_date'] = _(u'error_invalid_start_date',
-                                        default=u'Start date is not valid.')
+                                         default=u'Start date is not valid.')
         else:
             start = self.start()
 

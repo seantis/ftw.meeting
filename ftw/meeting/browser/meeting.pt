@@ -171,6 +171,10 @@
                     </tr>
 
                 </table>
+                <div class="meetingText"
+                     tal:condition="context/getText"
+                     tal:content="structure context/getText"
+                     />
 
                 <div class="MeetingItems"
                      tal:define="meeting_items python:context.getFolderContents({'portal_type':['Meeting Item']}, full_objects=True);"

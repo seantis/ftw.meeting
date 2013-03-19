@@ -13,6 +13,7 @@ ul.AttendeesListing li {
 
 
 .MeetingItemWrapper .MeetingItemBody {
+    margin-top: 0.5em;
     margin-left: 0em;
     margin-bottom: 3em;
 }
@@ -45,7 +46,9 @@ ul.AttendeesListing li {
 .MeetingItemWrapper:hover .meetingItemActions {
   display: block;
 }
-
+.meetingText {
+  margin: 1em 0;
+}
 
 
 /* meetingitem actions */

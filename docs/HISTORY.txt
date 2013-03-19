@@ -5,7 +5,8 @@ Changelog
 1.4.3 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Added a textfield to meeting.
+  [Julian Infanger]
 
 
 1.4.2 (2013-03-11)
